@@ -14,17 +14,21 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 
-typedef UINT8    uint8_t;
-typedef UINT16   uint16_t;
-typedef INT32    int32_t;
-typedef UINT32   uint32_t;
-typedef UINT64   uint64_t;
-typedef UINTN    uintptr_t;
-typedef UINTN    size_t;
-typedef BOOLEAN  bool;
+typedef UINT8   uint8_t;
+typedef UINT16  uint16_t;
+typedef INT32   int32_t;
+typedef UINT32  uint32_t;
+typedef UINT64  uint64_t;
+typedef UINTN   uintptr_t;
+typedef UINTN   size_t;
 
+#if defined __STDC_VERSION__ && __STDC_VERSION__ > 201710L
+/* bool, true and false are keywords.  */
+#else
+typedef BOOLEAN bool;
 #define true   (1 == 1)
 #define false  (1 == 0)
+#endif
 
 //
 // Definitions for global constants used by libfdt library routines
@@ -63,13 +67,13 @@ strchr     (
   );
 
 char *
-strrchr    (
+fdt_strrchr    (
   const char *,
   int
   );
 
 unsigned long
-strtoul     (
+fdt_strtoul     (
   const char *,
   char **,
   int
@@ -93,7 +97,10 @@ strcpy (
 #define strnlen(str, count)                 (size_t)(AsciiStrnLenS(str, count))
 #define strncpy(strDest, strSource, count)  AsciiStrnCpyS(strDest, MAX_STRING_SIZE, strSource, (UINTN)count)
 #define strcat(strDest, strSource)          AsciiStrCatS(strDest, MAX_STRING_SIZE, strSource)
+#define strchr(str, ch)                     ScanMem8(str, AsciiStrSize (str), (UINT8)ch)
 #define strcmp(string1, string2, count)     (int)(AsciiStrCmp(string1, string2))
 #define strncmp(string1, string2, count)    (int)(AsciiStrnCmp(string1, string2, (UINTN)(count)))
+#define strrchr(str, ch)                    fdt_strrchr(str, ch)
+#define strtoul(ptr, end_ptr, base)         fdt_strtoul(ptr, end_ptr, base)
 
 #endif /* FDT_LIB_SUPPORT_H_ */

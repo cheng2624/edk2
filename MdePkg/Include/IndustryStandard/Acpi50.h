@@ -4,6 +4,7 @@
   Copyright (c) 2014 Hewlett-Packard Development Company, L.P.<BR>
   Copyright (c) 2011 - 2022, Intel Corporation. All rights reserved.<BR>
   Copyright (c) 2020, ARM Ltd. All rights reserved.<BR>
+  Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
@@ -11,6 +12,16 @@
 #define _ACPI_5_0_H_
 
 #include <IndustryStandard/Acpi40.h>
+
+///
+/// _CSD Revision for ACPI 5.0
+///
+#define EFI_ACPI_5_0_AML_CSD_REVISION  0
+
+///
+/// _CSD NumEntries for ACPI 5.0
+///
+#define EFI_ACPI_5_0_AML_CSD_NUM_ENTRIES  6
 
 //
 // Define for Descriptor
@@ -22,6 +33,16 @@
 #define ACPI_FIXED_DMA_DESCRIPTOR                      0x55
 #define ACPI_GPIO_CONNECTION_DESCRIPTOR                0x8C
 #define ACPI_GENERIC_SERIAL_BUS_CONNECTION_DESCRIPTOR  0x8E
+
+///
+/// _PSD Revision for ACPI 5.0
+///
+#define EFI_ACPI_5_0_AML_PSD_REVISION  0
+
+///
+/// _CPC Revision for ACPI 5.0
+///
+#define EFI_ACPI_5_0_AML_CPC_REVISION  1
 
 #pragma pack(1)
 

@@ -84,6 +84,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DxeServicesLib.h>
 #include <Library/DebugAgentLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
+#include <Library/OrderedCollectionLib.h>
 
 //
 // attributes for reserved memory before it is promoted to system memory
@@ -228,26 +229,6 @@ typedef struct {
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \
           CR(a, LOADED_IMAGE_PRIVATE_DATA, Info, LOADED_IMAGE_PRIVATE_DATA_SIGNATURE)
 
-#define IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE  SIGNATURE_32 ('I','P','R','C')
-
-typedef struct {
-  UINT32                  Signature;
-  LIST_ENTRY              Link;
-  EFI_PHYSICAL_ADDRESS    CodeSegmentBase;
-  UINT64                  CodeSegmentSize;
-} IMAGE_PROPERTIES_RECORD_CODE_SECTION;
-
-#define IMAGE_PROPERTIES_RECORD_SIGNATURE  SIGNATURE_32 ('I','P','R','D')
-
-typedef struct {
-  UINT32                  Signature;
-  LIST_ENTRY              Link;
-  EFI_PHYSICAL_ADDRESS    ImageBase;
-  UINT64                  ImageSize;
-  UINTN                   CodeSegmentCount;
-  LIST_ENTRY              CodeSegmentList;
-} IMAGE_PROPERTIES_RECORD;
-
 //
 // DXE Core Global Variables
 //
@@ -295,6 +276,12 @@ extern BOOLEAN                                     gLoadFixedAddressCodeMemoryRe
 VOID
 CoreInitializePool (
   VOID
+  );
+
+VOID
+CoreSetMemoryTypeInformationRange (
+  IN EFI_PHYSICAL_ADDRESS  Start,
+  IN UINT64                Length
   );
 
 /**
@@ -2802,6 +2789,17 @@ MergeMemoryMap (
   IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
   IN OUT UINTN                  *MemoryMapSize,
   IN UINTN                      DescriptorSize
+  );
+
+/**
+  Initializes "handle" support.
+
+  @return Status code.
+
++**/
+EFI_STATUS
+CoreInitializeHandleServices (
+  VOID
   );
 
 #endif

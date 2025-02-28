@@ -34,7 +34,22 @@ GoogleTest requires less overhead to register test suites and test cases compare
 There are also a number of tools that layer on top of GoogleTest that improve developer productivity.
 One example is the VS Code extension
 [C++ TestMate](https://marketplace.visualstudio.com/items?itemName=matepek.vscode-catch2-test-adapter)
-that may be used to implement, run, and debug unit tests implemented using GoogleTest.
+that may be used to implement, run, and debug unit tests implemented using GoogleTest. The following
+is an example of the C++ TestMate JSON configuration to find unit tests and configure the environment
+for unit test execution.
+
+```
+"testMate.cpp.test.advancedExecutables": [
+    {
+        "pattern": "Build/**/*Test*",
+        "cwd": "${absDirpath}",
+        "env": {
+            "GTEST_CATCH_EXCEPTIONS": "0",
+            "ASAN_OPTIONS": "detect_leaks=0",
+        }
+    }
+],
+```
 
 If a component can be tested with host-based unit tests, then GoogleTest is recommended. The MdePkg
 contains a port of the BaseSafeIntLib unit tests in the GoogleTest style so the differences between
@@ -59,7 +74,7 @@ reviewed. The paths to the SecureBootVariableLib unit tests are:
 | Unit Test Source Language   |     C     |    C++     |
 | Register Test Suite         |    YES    |    Auto    |
 | Register Test Case          |    YES    |    Auto    |
-| Death/Expected Assert Tests |    YES    |    YES     |
+| Expected Assert Tests       |    YES    |    YES     |
 | Setup/Teardown Hooks        |    YES    |    YES     |
 | Value-Parameterized Tests   |    NO     |    YES     |
 | Typed Tests                 |    NO     |    YES     |
@@ -69,6 +84,7 @@ reviewed. The paths to the SecureBootVariableLib unit tests are:
 | JUNIT XML Reports           |    YES    |    YES     |
 | Execute subset of tests     |    NO     |    YES     |
 | VS Code Extensions          |    NO     |    YES     |
+| Address Sanitizer           |   Cmocka  |    YES     |
 
 ## Framework Libraries
 
@@ -485,8 +501,8 @@ function to be compiled into the test application and then hooked to during a
 test.
 
 This library is mainly a wrapper around the
-[subhook](https://github.com/Zeex/subhook) header and source files. It is
-important to note that the use of the mock function macros and the creation
+[subhook](https://github.com/tianocore/edk2-subhook) header and source files. It
+is important to note that the use of the mock function macros and the creation
 of mock functions requires no knowledge about the SubhookLib. The SubhookLib
 library is entirely hidden and encapsulated within FunctionMockLib, and it
 is only mentioned here to provide a complete explanation on all the libraries
@@ -1007,11 +1023,13 @@ See this example in `UnitTestFrameworkPkgHostTest.dsc`...
 
 Also, based on the type of tests that are being created, the associated DSC include file from the
 UnitTestFrameworkPkg for Host or Target based tests should also be included at the top of the DSC
-file.
+file. This provides the default defines and library class mappings requires for unit testing.
 
 ```
 !include UnitTestFrameworkPkg/UnitTestFrameworkPkgHost.dsc.inc
 ```
+
+ > **NOTE**: DSC files for host based unit tests must **not** include default mappings from packages such as `MdePkg/MdeLibs.dsc.inc`. This DSC files provides default defines and  library mappings for firmware builds that may not be compatible with host based unit test builds. Instead, the DSC file for host based unit tests must provide all the settings required for host based unit tests.
 
 Lastly, in the case that the test build has specific dependent libraries associated with it,
 they should be added in the \<LibraryClasses\> sub-section for the INF file in the
@@ -1095,22 +1113,6 @@ int main(int argc, char* argv[]) {
   return RUN_ALL_TESTS();
 }
 ```
-
-However, while GoogleTest does not require test suites or test cases to be
-registered, there is still one rule within EDK II that currently needs to be
-followed. This rule is that all tests for a given GoogleTest application must
-be contained within the same source file that contains the `main()` function
-shown above. These tests can be written directly in the file or a `#include`
-can be used to add them into the file indirectly.
-
-The reason for this is due to EDK II taking the host application INF file and
-first compiling all of its source files into a static library. This static
-library is then linked into the final host application. The problem with this
-method is that only the tests in the object file containing the `main()`
-function are linked into the final host application. This is because the other
-tests are contained in their own object files within the static library and
-they have no symbols in them that the final host application depends on, so
-those object files are not linked into the final host application.
 
 ### GoogleTest - A Simple Test Case
 
@@ -1328,7 +1330,7 @@ If you are trying to iterate on a single test, a convenient pattern is to build 
 the following command will build only the SafeIntLib host-based test from the MdePkg...
 
 ```bash
-stuart_ci_build -c .pytool/CISettings.py TOOL_CHAIN_TAG=VS2017 -p MdePkg -t NOOPT BUILDMODULE=MdePkg/Test/UnitTest/Library/BaseSafeIntLib/TestBaseSafeIntLib.inf
+stuart_ci_build -c .pytool/CISettings.py TOOL_CHAIN_TAG=VS2022 -p MdePkg -t NOOPT BUILDMODULE=MdePkg/Test/UnitTest/Library/BaseSafeIntLib/TestBaseSafeIntLib.inf
 ```
 
 ### Hooking BaseLib
@@ -1353,7 +1355,7 @@ symbolic debugging to be enabled.
 You can run a build by adding the `BLD_*_UNIT_TESTING_DEBUG=TRUE` parameter to enable this build option.
 
 ```bash
-stuart_ci_build -c .pytool/CISettings.py TOOL_CHAIN_TAG=VS2019 -p MdePkg -t NOOPT BLD_*_UNIT_TESTING_DEBUG=TRUE
+stuart_ci_build -c .pytool/CISettings.py TOOL_CHAIN_TAG=VS2022 -p MdePkg -t NOOPT BLD_*_UNIT_TESTING_DEBUG=TRUE
 ```
 
 ## Building and Running Host-Based Tests
@@ -1377,16 +1379,25 @@ After that, the following commands will set up the build and run the host-based 
 
 ```bash
 # Setup repo for building
-# stuart_setup -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=<GCC5, VS2019, etc.>
-stuart_setup -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=VS2019
+# stuart_setup -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=<GCC5, VS2022, etc.>
+stuart_setup -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=VS2022
 
 # Update all binary dependencies
-# stuart_update -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=<GCC5, VS2019, etc.>
-stuart_update -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=VS2019
+# stuart_update -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=<GCC5, VS2022, etc.>
+stuart_update -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=VS2022
 
 # Build and run the tests
-# stuart_ci_build -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=<GCC5, VS2019, etc.> -t NOOPT [-p <Package Name>]
-stuart_ci_build -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=VS2019 -t NOOPT -p MdePkg
+# stuart_ci_build -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=<GCC5, VS2022, etc.> -t NOOPT [-p <Package Name>]
+stuart_ci_build -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=VS2022 -t NOOPT -p MdePkg
+```
+
+#### Disabling Address Sanitizer
+
+By default, the address sanitizer feature is enabled for all host based unit test builds.  It can be disabled for
+development/debug purposes by setting the DSC define `UNIT_TESTING_ADDRESS_SANITIZER_ENABLE` to `FALSE`.
+
+```
+stuart_ci_build -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=VS2022 -t NOOPT -p MdePkg BLD_*_UNIT_TESTING_ADDRESS_SANITIZER_ENABLE=FALSE
 ```
 
 ### Evaluating the Results
@@ -1394,7 +1405,7 @@ stuart_ci_build -c ./.pytool/CISettings.py TOOL_CHAIN_TAG=VS2019 -t NOOPT -p Mde
 In your immediate output, any build failures will be highlighted. You can see these below as "WARNING" and "ERROR" messages.
 
 ```text
-(edk_env) PS C:\_uefi\edk2> stuart_ci_build -c .\.pytool\CISettings.py TOOL_CHAIN_TAG=VS2019 -t NOOPT -p MdePkg
+(edk_env) PS C:\_uefi\edk2> stuart_ci_build -c .\.pytool\CISettings.py TOOL_CHAIN_TAG=VS2022 -t NOOPT -p MdePkg
 
 SECTION - Init SDE
 SECTION - Loading Plugins
@@ -1429,7 +1440,7 @@ ERROR - Error
 If a test fails, you can run it manually to get more details...
 
 ```text
-(edk_env) PS C:\_uefi\edk2> .\Build\MdePkg\HostTest\NOOPT_VS2019\X64\TestBaseSafeIntLibHost.exe
+(edk_env) PS C:\_uefi\edk2> .\Build\MdePkg\HostTest\NOOPT_VS2022\X64\TestBaseSafeIntLibHost.exe
 
 Int Safe Lib Unit Test Application v0.1
 ---------------------------------------------------------
@@ -1462,7 +1473,7 @@ A sample of this output looks like:
 ```xml
 <!--
   Excerpt taken from:
-  Build\MdePkg\HostTest\NOOPT_VS2019\X64\TestBaseSafeIntLibHost.exe.Int Safe Conversions Test Suite.X64.result.xml
+  Build\MdePkg\HostTest\NOOPT_VS2022\X64\TestBaseSafeIntLibHost.exe.Int Safe Conversions Test Suite.X64.result.xml
   -->
 <?xml version="1.0" encoding="UTF-8" ?>
 <testsuites>
@@ -1477,6 +1488,26 @@ c:\_uefi\MdePkg\Test\UnitTest\Library\BaseSafeIntLib\TestBaseSafeIntLib.c:35: er
     </testcase>
     <testcase name="Test SafeInt8ToUintn" time="0.000" >
     </testcase>
+```
+
+### Manually Running Unit Test Executables
+
+The host based unit test executed using `stuart_ci_build` sets up the environment to run host based unit tests
+including environment variable settings. If host based unit test executable are run manually either from a
+shell or using VS Code extensions such as `C++ TestMate`, then the environment must be setup correctly.
+
+#### Windows Environment Variable Settings
+
+```
+set GTEST_CATCH_EXCEPTIONS=0
+set ASAN_OPTIONS=detect_leaks=0
+```
+
+#### Linux Environment Variable Settings
+
+```
+export GTEST_CATCH_EXCEPTIONS=0
+export ASAN_OPTIONS=detect_leaks=0
 ```
 
 ### XML Reporting Mode
@@ -1510,13 +1541,13 @@ OpenCppCoverage windows tool to parse coverage data to cobertura xml format.
   ```bash
   Download and install https://github.com/OpenCppCoverage/OpenCppCoverage/releases
   python -m pip install --upgrade -r ./pip-requirements.txt
-  stuart_ci_build -c .pytool/CISettings.py  -t NOOPT TOOL_CHAIN_TAG=VS2019 -p MdeModulePkg
+  stuart_ci_build -c .pytool/CISettings.py  -t NOOPT TOOL_CHAIN_TAG=VS2022 -p MdeModulePkg
   Open Build/coverage.xml
   ```
 
   - How to see code coverage data on IDE Visual Studio
     ```
-    Open Visual Studio VS2019 or above version
+    Open Visual Studio VS2022 or above version
     Click "Tools" -> "OpenCppCoverage Settings"
     Fill your execute file into "Program to run:"
     Click "Tools" -> "Run OpenCppCoverage"
